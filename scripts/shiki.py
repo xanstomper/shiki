@@ -188,17 +188,17 @@ def _run_engine(name, argv):
     return r.returncode
 
 
-def cmd_board(args):
-    """The war board: all family states for the target, one view."""
-    camp = Path.home() / ".redteam" / "campaigns" / args.org
-    print(f"═══ SHIKI WAR BOARD — {args.org} ═══")
+def _board_lines(org):
+    """Build the war-board lines (shared by board + joint report)."""
+    camp = Path.home() / ".redteam" / "campaigns" / org
+    lines = [f"═══ SHIKI WAR BOARD — {org} ═══"]
     total_conf = 0
     spec = [("undercroft", camp / "undercroft-state.json", ("code", "surface", "logic")),
             ("3am", camp / "state.json", ()),
             ("kairo", camp / "hardware-state.json", ())]
     for name, f, grps in spec:
         if not f.exists():
-            print(f"  [{name:10s}] — no state (lane not yet engaged)")
+            lines.append(f"  [{name:10s}] — no state (lane not yet engaged)")
             continue
         st = json.loads(f.read_text())
         if name == "undercroft":
@@ -206,29 +206,36 @@ def cmd_board(args):
                 items = st.get(g, [])
                 conf = sum(1 for x in items if x.get("status") == "CONFIRMED")
                 total_conf += conf
-                print(f"  [{name:10s}] {g}: {len(items)} entries, {conf} CONFIRMED")
-            print(f"  [{name:10s}] pocs: {len(st.get('pocs', []))} · chains-ready")
+                lines.append(f"  [{name:10s}] {g}: {len(items)} entries, {conf} CONFIRMED")
+            lines.append(f"  [{name:10s}] pocs: {len(st.get('pocs', []))} · chains-ready")
         elif name == "kairo":
             vs = st.get("vectors", [])
             ch = st.get("chains", [])
             dist = sum(1 for v in vs if v.get("distributed"))
             total_conf += len(ch)
-            print(f"  [{name:10s}] vectors: {len(vs)} (distributed {dist}) · chains: {len(ch)}")
+            lines.append(f"  [{name:10s}] vectors: {len(vs)} (distributed {dist}) · chains: {len(ch)}")
             for c in ch:
-                print(f"      {c['chain']} [{c['status']}]")
+                lines.append(f"      {c['chain']} [{c['status']}]")
         elif name == "3am":
             ei = st.get("exploit_intel", {})
-            print(f"  [{name:10s}] teardowns: {len(ei.get('teardowns', []))} · chains: {len(ei.get('chains', []))}")
+            lines.append(f"  [{name:10s}] teardowns: {len(ei.get('teardowns', []))} · chains: {len(ei.get('chains', []))}")
     lv = Path.home() / ".redteam" / "learned-vectors.jsonl"
     if lv.exists():
         rows = [json.loads(l) for l in lv.read_text().splitlines() if l.strip()]
-        print(f"  [family     ] learned-vectors canon: {len(rows)} rows (3AM promote-ready)")
-    ops = load(args.org) or {}
+        lines.append(f"  [family     ] learned-vectors canon: {len(rows)} rows (3AM promote-ready)")
+    ops = load(org) or {}
     lanes = ops.get("lanes", {})
     if lanes:
         conf = sum(1 for l in lanes.values() if l.get("status") == "CONFIRMED")
-        print(f"  [shiki      ] lanes: {len(lanes)} planned, {conf} CONFIRMED")
-    print(f"═══ {total_conf} confirmed finding(s) on the board ═══")
+        lines.append(f"  [shiki      ] lanes: {len(lanes)} planned, {conf} CONFIRMED")
+    lines.append(f"═══ {total_conf} confirmed finding(s) on the board ═══")
+    return lines
+
+
+def cmd_board(args):
+    """The war board: all family states for the target, one view."""
+    for line in _board_lines(args.org):
+        print(line)
     return 0
 
 
@@ -279,6 +286,10 @@ def cmd_assault(args):
     rep = f"{args.target}-joint-assault.md"
     args.output = rep
     cmd_report(args)
+    with open(rep, "a") as f:
+        f.write("\n## The War Board (family states)\n```\n")
+        f.write("\n".join(_board_lines(args.target)))
+        f.write("\n```\n")
     print(f"═══ joint report: {rep} · next: 3AM promote --apply --verified ═══")
     return 0
 
