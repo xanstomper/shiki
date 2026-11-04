@@ -240,28 +240,35 @@ def cmd_board(args):
 
 
 def cmd_assault(args):
-    """ONE COMMAND: the family, in order, under the shield."""
+    """ONE COMMAND: the family, in order, under the shield. Parallel-capable, adaptive."""
+    import shutil
+    import threading
     print(f"═══ SHIKI ASSAULT — {args.target} ═══")
     steps = {"gate", "find", "descend", "forge", "chain"}
     if args.skip:
         steps -= set(args.skip.split(","))
-    # [0] GATE
-    if "gate" in steps:
+    if args.resume:
+        dossier = Path(f"{args.target}-dossier.md")
+        if dossier.exists():
+            steps.discard("find")
+            print(f"[resume] dossier fresh ({dossier.name}) — find skipped (re-run freely; dedupe makes it cheap)")
+    # [0] GATE (always first, always blocking)
+    if "gate" in steps or args.resume:
         print("[0] BARBICAN GATE")
         rc = _run_engine("barbican", ["vantage", "check", "--target", args.target])
         if rc == 1:
             print("═══ ASSAULT ABORTED — the shield is down. Fix the vantage or re-posture. ═══")
             return 1
         print("    gate open — shield verified")
-    # [1] FIND
-    if "find" in steps:
+    # [1]+[2] FIND ∥ DESCEND (independent stages — parallel when --parallel)
+    def _find():
         print("[1] HOLYSHIT FINDS")
         _run_engine("holyshit", ["recon", "--domain", args.domain])
         _run_engine("holyshit", ["dossier", "--target", args.target])
-    # [2] DESCEND
-    if "descend" in steps and args.url:
+
+    def _descend():
         print("[2] UNDERCROFT DESCENDS (live, read-only)")
-        argv = ["run", "--target", args.target, "--domain", args.domain, "--url", args.url]
+        argv = ["run", "--target", args.target, "--domain", args.domain, "--url", args.url or ""]
         if args.bundle:
             argv += ["--bundle", args.bundle]
         if args.cookie:
@@ -271,14 +278,59 @@ def cmd_assault(args):
         if args.probe_ids:
             argv += ["--probe-ids", args.probe_ids]
         _run_engine("undercroft", argv)
+
+    threads = []
+    if "find" in steps:
+        t1 = threading.Thread(target=_find)
+        threads.append(t1)
+    if "descend" in steps and args.url:
+        t2 = threading.Thread(target=_descend)
+        threads.append(t2)
+    if args.parallel and threads:
+        print(f"[*] PARALLEL: {len(threads)} independent stages firing concurrently")
+        for t in threads:
+            t.start()
+    for t in threads:
+        t.join()
+    # [ADAPTIVE] re-task: the assault reads results and updates its own lanes NOW
+    st_ops = load(args.target) or {"target": args.target, "estate": args.url or "",
+                                   "lanes": {}, "created": datetime.now(timezone.utc).isoformat()}
+    lanes = st_ops.setdefault("lanes", {})
+    camp = Path.home() / ".redteam" / "campaigns" / args.target
+    uc = camp / "undercroft-state.json"
+    if uc.exists():
+        u = json.loads(uc.read_text())
+        conf_s = sum(1 for x in u.get("surface", []) if x.get("status") == "CONFIRMED")
+        conf_l = sum(1 for x in u.get("logic", []) if x.get("status") == "CONFIRMED")
+        status = "CONFIRMED" if (conf_s + conf_l) else "ACTIVE"
+        lanes["descent"] = {"assign": "undercroft", "status": status,
+                            "score": 90 if status == "CONFIRMED" else 60,
+                            "note": f"{conf_s} live routes + {conf_l} logic seams CONFIRMED",
+                            "at": datetime.now(timezone.utc).isoformat()}
+        if status == "CONFIRMED":
+            print(f"[↯] ADAPTIVE RE-TASK: descent CONFIRMED ({conf_s}+{conf_l}) — lanes updated, forge escalated")
     # [3] FORGE
     if "forge" in steps:
         print("[3] KAIRO FORGES")
         _run_engine("kairo", ["forge", "--target", args.target, "--expand"])
+        k = camp / "hardware-state.json"
+        nv = len(json.loads(k.read_text()).get("vectors", [])) if k.exists() else 0
+        lanes["forge"] = {"assign": "kairo", "status": "CONFIRMED" if nv else "ACTIVE",
+                          "score": 85 if nv else 50, "note": f"{nv} vectors armed",
+                          "at": datetime.now(timezone.utc).isoformat()}
     # [4] CHAIN
     if "chain" in steps:
         print("[4] KAIRO CHAINS")
         _run_engine("kairo", ["chain", "--target", args.target, "--write"])
+        k = camp / "hardware-state.json"
+        nch = len(json.loads(k.read_text()).get("chains", [])) if k.exists() else 0
+        lanes["chain"] = {"assign": "kairo", "status": "CONFIRMED" if nch else "ACTIVE",
+                          "score": 80 if nch else 40, "note": f"{nch} kill chain(s)",
+                          "at": datetime.now(timezone.utc).isoformat()}
+    save_state = st_ops
+    p_ops = Path.home() / ".redteam" / "campaigns" / args.target / "ops-state.json"
+    p_ops.parent.mkdir(parents=True, exist_ok=True)
+    p_ops.write_text(json.dumps(save_state, indent=2) + "\n")
     # [5] VERDICT
     print("[5] THE WAR BOARD + JOINT VERDICT")
     args.org = args.target
@@ -291,6 +343,15 @@ def cmd_assault(args):
         f.write("\n".join(_board_lines(args.target)))
         f.write("\n```\n")
     print(f"═══ joint report: {rep} · next: 3AM promote --apply --verified ═══")
+    if args.close:
+        print("[6] CLOSE: barbican wipe (canon survives)")
+        _run_engine("barbican", ["wipe", "--target", args.target, "--confirm"])
+        rep_keep = Path(rep)
+        if rep_keep.exists():
+            keep = Path.home() / ".redteam" / "closeouts"
+            keep.mkdir(parents=True, exist_ok=True)
+            shutil.copy(rep, keep / rep_keep.name)
+            print(f"    joint report archived → {keep / rep_keep.name}")
     return 0
 
 
@@ -326,6 +387,9 @@ def main():
     asl.add_argument("--boundary-url", help="boundary probe template with {id}")
     asl.add_argument("--probe-ids", help="comma own-ids")
     asl.add_argument("--skip", help="comma steps to skip: gate,find,descend,forge,chain")
+    asl.add_argument("--parallel", action="store_true", help="find ∥ descend concurrently")
+    asl.add_argument("--resume", action="store_true", help="engagement continuity: skip fresh stages, dedupe the rest")
+    asl.add_argument("--close", action="store_true", help="closeout: wipe campaign (report archived to ~/.redteam/closeouts)")
     a = ap.parse_args()
     if a.cmd == "plan":
         return cmd_plan(a)
