@@ -82,6 +82,8 @@ def cmd_lane(args):
     if args.assign not in LANE_OWNERS or args.status not in LANE_STATUS:
         print(f"✗ assign {LANE_OWNERS} · status {LANE_STATUS}", file=sys.stderr)
         return 2
+    if args.assign:
+        lanes[args.lane]["assign"] = args.assign  # preserve owner on re-task
     if lanes[args.lane]["status"] == "EXHAUSTED" and args.status != "EXHAUSTED":
         print("· lane EXHAUSTED — re-open only after a target change (canon)")
         return 0
@@ -169,7 +171,7 @@ def main():
     l = sub.add_parser("lane", help="dispatch/update a lane")
     l.add_argument("--org", required=True)
     l.add_argument("--lane", required=True)
-    l.add_argument("--assign", required=True, choices=LANE_OWNERS)
+    l.add_argument("--assign", choices=LANE_OWNERS, help="defaults to current owner")
     l.add_argument("--status", required=True, choices=LANE_STATUS)
     l.add_argument("--note")
     l.add_argument("--score", type=int)
