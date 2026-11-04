@@ -79,8 +79,11 @@ def cmd_lane(args):
     if args.lane not in lanes:
         print(f"✗ lane '{args.lane}' not in plan — plan first", file=sys.stderr)
         return 2
-    if args.assign not in LANE_OWNERS or args.status not in LANE_STATUS:
-        print(f"✗ assign {LANE_OWNERS} · status {LANE_STATUS}", file=sys.stderr)
+    if args.assign is not None and args.assign not in LANE_OWNERS:
+        print(f"✗ assign {LANE_OWNERS}", file=sys.stderr)
+        return 2
+    if args.status not in LANE_STATUS:
+        print(f"✗ status {LANE_STATUS}", file=sys.stderr)
         return 2
     if args.assign:
         lanes[args.lane]["assign"] = args.assign  # preserve owner on re-task
