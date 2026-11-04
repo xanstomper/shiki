@@ -125,7 +125,7 @@ State: `~/.redteam/campaigns/<target>/ops-state.json`.
 
 ## Relations
 
-- `/cyberbomb` — THE DISPATCHER (v1.0.0): the family's front door — any agent loads it first, states the goal, and the router sends the right mandate(s); `cyberbomb run` = the full pipeline, `cyberbomb verify` checks all six engines. The web's center.
+- `spydermonkey` — THE DISPATCHER (v1.0.0): the family's front door — any agent loads it first, states the goal, and the router sends the right mandate(s); `spydermonkey run` = the full pipeline, `spydermonkey verify` checks all six engines. The web's center.
 
 
 - `barbican` — THE FIRST LAYER: its gate is SHIKI's step 0; no posture, no assault.
