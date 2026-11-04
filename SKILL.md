@@ -125,6 +125,9 @@ State: `~/.redteam/campaigns/<target>/ops-state.json`.
 
 ## Relations
 
+- `spydermonkey` — THE DISPATCHER (v1.0.0): the family's front door — any agent loads it first, states the goal, and the router sends the right mandate(s); `spydermonkey run` = the full pipeline, `spydermonkey verify` checks all six engines. The web's center.
+
+
 - `barbican` — THE FIRST LAYER: its gate is SHIKI's step 0; no posture, no assault.
 - `holyshit-mode` — the finder: recon + dossier are SHIKI's step 1.
 - `undercroft` — the descent: its live `run` is SHIKI's step 2.
