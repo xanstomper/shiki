@@ -471,11 +471,76 @@ def cmd_gate(args):
         return 1
     r = subprocess.run([sys.executable, str(barb), "vantage", "check",
                         "--target", args.target])
-    if r.returncode == 0:
-        print("═══ GATE OPEN — shield verified ═══")
-        return 0
-    print("═══ GATE CLOSED — no verified exit, no engagement ═══", file=sys.stderr)
-    return r.returncode or 1
+    if r.returncode != 0:
+        print("═══ GATE CLOSED — no verified exit, no engagement ═══", file=sys.stderr)
+        return r.returncode or 1
+    # the scope authority: the machine-checkable estate gate
+    if args.value:
+        sm = Path.home() / ".hermes/skills/security/spydermonkey/scripts/spydermonkey.py"
+        if sm.exists():
+            r2 = subprocess.run([sys.executable, str(sm), "scope", "check",
+                                 "--value", args.value, "--strict"])
+            if r2.returncode != 0:
+                print("═══ GATE CLOSED — target out of scope ═══", file=sys.stderr)
+                return 1
+    print("═══ GATE OPEN — shield verified, scope honored ═══")
+    return 0
+
+
+def cmd_validate(args):
+    """The PSV validator (post-assault verification pass): every CONFIRMED claim
+    re-checked for drift — stale findings are named, not trusted."""
+    camp = Path.home() / ".redteam" / "campaigns" / args.target
+    stale, fresh = [], 0
+    now = datetime.now(timezone.utc)
+    u = camp / "undercroft-state.json"
+    if u.exists():
+        st = json.loads(u.read_text())
+        for grp in ("surface", "logic", "code"):
+            for x in st.get(grp, []):
+                if x.get("status") != "CONFIRMED":
+                    continue
+                at = x.get("at", "")
+                try:
+                    age = (now - datetime.fromisoformat(at)).days if at else 999
+                except Exception:
+                    age = 999
+                if age > args.days:
+                    stale.append((f"undercroft/{grp}", x.get("seam")
+                                  or x.get("endpoint") or x.get("asset") or "?", age))
+                else:
+                    fresh += 1
+    k = camp / "hardware-state.json"
+    if k.exists():
+        st = json.loads(k.read_text())
+        for v in st.get("vectors", []):
+            if v.get("distributed"):
+                fresh += 1
+        for c in st.get("chains", []):
+            if c.get("status") == "TAKEOVER-CANDIDATE":
+                stale.append(("kairo/chain", c.get("chain", "?"), "unproven final hop"))
+    h = camp / "harvest-state.json"
+    if h.exists():
+        st = json.loads(h.read_text())
+        for cr in st.get("crown", []):
+            at = cr.get("at", "")
+            try:
+                age = (now - datetime.fromisoformat(at)).days if at else 999
+            except Exception:
+                age = 999
+            if age > args.days:
+                stale.append(("shukaku/crown", cr.get("id", "?"), age))
+            else:
+                fresh += 1
+    print(f"═══ SHIKI VALIDATE — {args.target} ({args.days}d drift window) ═══")
+    print(f"  fresh CONFIRMED claims: {fresh}")
+    if stale:
+        for src, label, age in stale:
+            print(f"  ⚠ STALE {src}: {label} ({age}) — re-verify (drift before re-assert)")
+        print(f"═══ {len(stale)} claim(s) need re-verification — do not cite stale ═══")
+        return 1
+    print("═══ ALL CONFIRMED CLAIMS FRESH — validated ═══")
+    return 0
 
 
 def cmd_warroom(args):
@@ -559,6 +624,11 @@ def cmd_handoff(args):
         print("  shukaku hunt   --target " + args.target + "   # then --live if web reach")
         print("  shukaku feed   --target " + args.target + "   # the loop closes")
         print("  shukaku report --target " + args.target)
+    elif to == "kaisha":
+        print(f"  kaisha ladder  --target {args.target} --host <h> --access <confirmed>")
+        print(f"  kaisha cve     --banner \"<banner from R2>\"")
+        print(f"  kaisha lateral --target {args.target} --from <h> --to <adjacent>")
+        print(f"  kaisha rungs   --target {args.target}   # then report")
     elif to == "kairo":
         print(f"  kairo ingest --target {args.target}")
         print(f"  kairo gene   --check --target {args.target}   # NO Δ = NO VECTOR")
@@ -615,11 +685,15 @@ def main():
     asl.add_argument("--plan-only", action="store_true", help="print the full 6-step plan (exact argv, engine presence); execute nothing")
     wr = sub.add_parser("warroom", help="board + fires + family engine status, one view")
     wr.add_argument("--org", required=True)
-    gt = sub.add_parser("gate", help="standalone step-0: barbican vantage check")
+    gt = sub.add_parser("gate", help="standalone step-0: barbican vantage check + scope authority")
     gt.add_argument("--target", required=True)
+    gt.add_argument("--value", help="domain/url to check against ~/.redteam/scope.json")
+    vl = sub.add_parser("validate", help="the PSV validator: re-check every CONFIRMED claim for drift")
+    vl.add_argument("--target", required=True)
+    vl.add_argument("--days", type=int, default=7)
     ho = sub.add_parser("handoff", help="the next mandate's exact command sequence")
     ho.add_argument("--target", required=True)
-    ho.add_argument("--to", required=True, choices=("shukaku", "holyshit", "kairo"))
+    ho.add_argument("--to", required=True, choices=("shukaku", "holyshit", "kairo", "kaisha"))
     a = ap.parse_args()
     if a.cmd == "plan":
         return cmd_plan(a)
@@ -637,6 +711,8 @@ def main():
         return cmd_warroom(a)
     if a.cmd == "gate":
         return cmd_gate(a)
+    if a.cmd == "validate":
+        return cmd_validate(a)
     if a.cmd == "handoff":
         return cmd_handoff(a)
     if a.cmd == "assault":

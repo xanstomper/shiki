@@ -25,7 +25,9 @@ jobs:
           python3 $S assault --target demo --domain demo.com --url https://demo.com --plan-only | grep -q 'DESCEND'
           python3 $S assault --target demo --domain demo.com --plan-only --skip gate,forge | grep -q 'SKIPPED'
           python3 $S gate --target demo 2>/dev/null || test $? -eq 1   # shield missing in isolated HOME
-          for c in assault board plan lane fires report verify warroom gate handoff; do
+          python3 $S validate --target demo | grep -q 'VALIDATE'
+          python3 $S handoff --target demo --to kaisha | grep -q 'kaisha ladder'
+          for c in assault board plan lane fires report verify warroom gate handoff validate; do
             python3 $S --help | grep -q "$c"
           done
           test -f templates/ops-state.json

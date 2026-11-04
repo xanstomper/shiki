@@ -114,7 +114,8 @@ says so in the report.
 - `gate --target T` — standalone step-0: the barbican vantage check everything can call (GATE OPEN/CLOSED)
 - `board --org <o>` — the war board (all family states, one view)
 - `warroom --org <o>` — board + fire-list + family engine status in one dense view
-- `handoff --target T --to shukaku|holyshit|kairo` — the next mandate's exact command sequence from live campaign state
+- `handoff --target T --to shukaku|holyshit|kairo|kaisha` — the next mandate's exact command sequence from live campaign state
+- `validate --target T [--days N]` — the PSV validator: every CONFIRMED claim re-checked for drift; stale claims named, not trusted (rc=1 = re-verify required)
 - `plan/lane/fires/report` — the manual battle plan (v1 layer)
 - `verify` — self-check (incl. family engines located)
 
