@@ -1,0 +1,11 @@
+{
+  "org": "<organization/estate>",
+  "estate": "<target estate>",
+  "created": "<ISO-8601>",
+  "lanes": {
+    "web": {"assign": "3am", "status": "QUEUED", "score": 0, "note": "", "at": ""},
+    "api": {"assign": "3am", "status": "QUEUED", "score": 0, "note": "", "at": ""},
+    "servers": {"assign": "3am", "status": "QUEUED", "score": 0, "note": "", "at": ""},
+    "devices": {"assign": "kairo", "status": "QUEUED", "score": 0, "note": "", "at": ""}
+  }
+}
