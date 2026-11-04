@@ -111,7 +111,10 @@ python3 shiki/scripts/shiki.py assault --target t --url https://t.example \
 
 | Command | What it does |
 |---|---|
-| `assault --target T --url U --domain D [--bundle P] [--boundary-url U2] [--probe-ids 1,2] [--skip gate\|find\|descend\|forge\|chain]` | the orchestrated assault (steps 0–5) |
+| `assault --target T --url U --domain D [--bundle P] [--boundary-url U2] [--probe-ids 1,2] [--skip gate\|find\|descend\|forge\|chain] [--plan-only]` | the orchestrated assault (steps 0–5); `--plan-only` = the full plan, nothing executes |
+| `gate --target T` | standalone step-0 — the shield check (GATE OPEN/CLOSED) |
+| `warroom --org O` | board + fires + family engine status, one dense view |
+| `handoff --target T --to shukaku\|holyshit\|kairo` | the next mandate's exact command sequence from live state |
 | `board --org O` | the war board — all family states in one view |
 | `plan / lane / fires / report` | the manual battle plan layer |
 | `verify` | self-check (incl. family engines located) |

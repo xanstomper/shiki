@@ -1,7 +1,7 @@
 ---
 name: shiki
 description: "Trigger `shiki`. THE COMMAND — runs the whole family as one assault: barbican gate → holyshit recon/dossier → undercroft live descent → kairo forge → chains → joint verdict. One command."
-version: 2.0.0
+version: 2.1.0
 author: Hermes Agent
 license: MIT
 platforms: [linux]
@@ -110,8 +110,11 @@ says so in the report.
 ## Tooling
 
 `scripts/shiki.py` — stdlib CLI:
-- `assault --target T --url U --domain D [--bundle P] [--cookie k=v] [--boundary-url U2] [--probe-ids 1,2] [--skip gate|find|descend|forge|chain]` — the orchestrated assault
+- `assault --target T --url U --domain D [--bundle P] [--cookie k=v] [--boundary-url U2] [--probe-ids 1,2] [--skip gate|find|descend|forge|chain] [--plan-only]` — the orchestrated assault; `--plan-only` prints the full 6-step plan (exact argv + engine presence) and executes nothing
+- `gate --target T` — standalone step-0: the barbican vantage check everything can call (GATE OPEN/CLOSED)
 - `board --org <o>` — the war board (all family states, one view)
+- `warroom --org <o>` — board + fire-list + family engine status in one dense view
+- `handoff --target T --to shukaku|holyshit|kairo` — the next mandate's exact command sequence from live campaign state
 - `plan/lane/fires/report` — the manual battle plan (v1 layer)
 - `verify` — self-check (incl. family engines located)
 

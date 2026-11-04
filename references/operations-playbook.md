@@ -56,3 +56,56 @@ drift on re-entry → report (one joint verdict)
 Identical to the family: documented-PoC adaptation only; validation-only compromise
 (one proof, then stop); no persistence/destruction/social; zero documents at P0;
 all lanes restricted to the declared estate.
+
+## Escalation paths (per lane — on CONFIRMED)
+
+| Confirmed in | Escalate to | The play |
+|---|---|---|
+| web (framework defaults) | undercroft | bespoke handlers the sweep can't model |
+| api (schema seams) | 3AM promote | confirmed seams → matrix rows → the sweep grows |
+| servers (foothold) | shukaku | what does the foothold SEE — harvest the data plane |
+| cloud (keys/config) | kairo + barbican | keys are synthesis material; exposure → sanitize |
+| identity (token seams) | kairo | compile AUTHBYPASS siblings family-wide |
+| devices (any plane) | shukaku | device data + keys enter the crown register |
+
+## Adaptive re-tasking protocol (the mechanics)
+
+Trigger conditions — any ONE fires a re-task within the same turn:
+1. Lane CONFIRMED → its escalation target (table above) queues immediately.
+2. Lane EXHAUSTED → its budget re-allocates to the highest-scoring QUEUED lane.
+3. Descent returns CONFIRMED seams with no matching lane → `cmd_assault` opens
+   the lane automatically and writes it to ops-state.
+4. kairo armory shows vectors with no lane → lanes open per vector class.
+
+Mechanics: lanes update in ops-state.json (the assault writes it itself); the
+fire-list re-sorts on next read; no operator round-trip. The assignment registry
+keeps both test ids on merge — dedupe holds.
+
+## Handoff contracts (the chain's batons)
+
+| From → To | Handoff carries | Consumer entry |
+|---|---|---|
+| shiki → shukaku | CONFIRMED findings as ingest lines + crown-class guesses | `shukaku ingest` → `reason` → `hunt` → `feed` |
+| shiki → kairo | the campaign target | `kairo ingest` → `gene --check` → `forge --expand` → `chain --validate` → `chain --write` |
+| shiki → holyshit | the domain + confirmed seams | `recon` → `dossier` → `recipe --search` |
+| undercroft → 3AM | crafted PoCs | `export` → `learn` / `promote --apply --verified` |
+| kairo → everyone | compiled attacks | `distribute` (3AM rows / crafts / recipes) |
+| shukaku → everyone | harvest-fed vectors + surface entries | `feed` (idempotent, schema-true) |
+
+`shiki handoff --target T --to <mandate>` prints the exact consumer command
+sequence derived from live campaign state.
+
+## The assault plan anatomy (`assault --plan-only`)
+
+```
+[0] GATE     barbican vantage check   rc=1 aborts everything — the shield is law
+[1] FIND     holyshit recon + dossier (parallel-capable with [2])
+[2] DESCEND  undercroft run           GET-only by construction
+[3] FORGE    kairo forge --expand     1 finding → ~4 attacks
+[4] CHAIN    kairo chain --write      TAKEOVER-CANDIDATE until final proof
+[5] VERDICT  board + joint report     adaptive lanes already updated
+[6] CLOSE    barbican wipe --confirm  canon survives; report archived
+```
+
+--plan-only prints the exact argv per step plus per-engine presence (✓/✗) and
+never executes — missing engines surface in the plan, not mid-assault.

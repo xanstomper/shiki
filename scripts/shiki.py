@@ -4,14 +4,22 @@ SHIKI — Command Mandate CLI. Bind family lanes into one coordinated attack.
 stdlib-only. State: ~/.redteam/campaigns/<org>/ops-state.json.
 
 Commands:
-  plan    --org <o> --estate "<target>" --lanes "web,api,servers,cloud,identity,devices,mail,data"
-  lane    --org <o> --lane <name> --assign 3am|holyShit|kairo|shiki
-          --status QUEUED|ACTIVE|CONFIRMED|EXHAUSTED|N/A [--note "..."] [--score N]
-  fires   --org <o>                     joint fire-list, score-ordered
-  report  --org <o> [--output F]        joint operations verdict
-  verify  self-check
+  plan     --org <o> --estate "<target>" --lanes "web,api,servers,cloud,identity,devices,mail,data"
+  lane     --org <o> --lane <name> --assign 3am|holyShit|kairo|shiki
+           --status QUEUED|ACTIVE|CONFIRMED|EXHAUSTED|N/A [--note "..."] [--score N]
+  fires    --org <o>                     joint fire-list, score-ordered
+  board    --org <o>                     the war board: all family states, one view
+  warroom  --org <o>                     board + fires + family engine status, one view
+  gate     --target <t>                  standalone step-0 (barbican vantage check)
+  handoff  --target <t> --to shukaku|holyshit|kairo
+                                         the next mandate's exact command sequence
+  assault  --target <t> --url U --domain D [--bundle P] [--boundary-url U2]
+           [--probe-ids 1,2] [--parallel] [--resume] [--close] [--plan-only]
+                                         the full pipeline (plan-only = print, don't run)
+  report   --org <o> [--output F]        joint operations verdict
+  verify   self-check
 
-Exit codes: 0 ok · 2 usage/state error.
+Exit codes: 0 ok · 1 gate/verify failure · 2 usage/state error.
 """
 import argparse
 import json
@@ -146,7 +154,7 @@ def cmd_verify(args):
     help_out = subprocess.run([sys.executable, str(self), "--help"],
                               capture_output=True, text=True).stdout
     for want in ("plan", "lane", "fires", "report", "verify",
-                 "board", "assault"):
+                 "board", "assault", "warroom", "gate", "handoff"):
         if want not in help_out:
             bad.append(f"subcommand {want}")
     # family engines must exist (SHIKI drives them)
@@ -355,6 +363,220 @@ def cmd_assault(args):
     return 0
 
 
+# ── v2.1.0 the command layer deepens: plan · gate · warroom · handoff ─────────
+
+FAMILY_STATUS_ORDER = ("barbican", "holyshit", "undercroft", "kairo", "3am",
+                       "shukaku")
+
+
+def _family_status_lines():
+    rows = []
+    for name in FAMILY_STATUS_ORDER:
+        if name in FAMILY:
+            script = FAMILY[name]
+        else:
+            dirname = "3am-shinjitsu" if name == "3am" else name
+            fname = "exploit-intel.py" if name == "3am" else f"{name}.py"
+            script = Path.home() / ".hermes/skills/security" / dirname / "scripts" / fname
+        rows.append((name, "✓" if script.exists() else "✗"))
+    return rows
+
+
+def _assault_plan(args):
+    """The full 6-step plan: per step, exact argv, gate notes. Executes nothing."""
+    steps = ["gate", "find", "descend", "forge", "chain"]
+    skip = set(s for s in (args.skip or "").split(",") if s)
+    plan = []
+    if "gate" not in skip:
+        plan.append(("0", "GATE", "barbican",
+                     ["vantage", "check", "--target", args.target],
+                     "rc=1 aborts everything — no verified exit, no assault"))
+    else:
+        plan.append(("0", "GATE", "SKIPPED", [], "--skip gate (never do this blind)"))
+    if "find" not in skip:
+        plan.append(("1", "FIND", "holyshit",
+                     ["recon", "--domain", args.domain],
+                     "discovery checklist"))
+        plan.append(("1", "FIND", "holyshit",
+                     ["dossier", "--target", args.target],
+                     "everything the canon knows"))
+    else:
+        plan.append(("1", "FIND", "SKIPPED", [], "--skip find"))
+    if "descend" not in skip:
+        if args.url:
+            argv = ["run", "--target", args.target, "--domain", args.domain,
+                    "--url", args.url]
+            for flag, val in (("--bundle", args.bundle),
+                              ("--cookie", args.cookie),
+                              ("--boundary-url", args.boundary_url),
+                              ("--probe-ids", args.probe_ids)):
+                if val:
+                    argv += [flag, val]
+            plan.append(("2", "DESCEND", "undercroft", argv,
+                         "live read-only engagement (parallel-capable with find)"))
+        else:
+            plan.append(("2", "DESCEND", "undercroft", [],
+                         "no --url — descend will be skipped at run time"))
+    else:
+        plan.append(("2", "DESCEND", "SKIPPED", [], "--skip descend"))
+    if "forge" not in skip:
+        plan.append(("3", "FORGE", "kairo",
+                     ["forge", "--target", args.target, "--expand"],
+                     "1 finding → ~4 attacks, distributed to every consumer"))
+    else:
+        plan.append(("3", "FORGE", "SKIPPED", [], "--skip forge"))
+    if "chain" not in skip:
+        plan.append(("4", "CHAIN", "kairo",
+                     ["chain", "--target", args.target, "--write"],
+                     "multi-hop kill chains, TAKEOVER-CANDIDATE"))
+    else:
+        plan.append(("4", "CHAIN", "SKIPPED", [], "--skip chain"))
+    plan.append(("5", "VERDICT", "shiki", ["board + report"],
+                 "war board + joint operations verdict"))
+    if args.close:
+        plan.append(("6", "CLOSE", "barbican",
+                     ["wipe", "--target", args.target, "--confirm"],
+                     "campaign wiped; joint report archived to ~/.redteam/closeouts"))
+    if args.resume:
+        plan.append(("", "RESUME", "shiki", [],
+                     "fresh stages skipped (dossier exists), rest deduped"))
+    return plan
+
+
+def cmd_assault_plan(args):
+    print(f"═══ SHIKI ASSAULT PLAN — {args.target} (plan-only: nothing executes) ═══")
+    for num, name, engine, argv, note in _assault_plan(args):
+        argvs = f"$ shiki-driven: {engine} {' '.join(argv)}" if argv else ""
+        print(f"  [{num}] {name:8s} {engine:10s} {argvs[:96]}")
+        if engine == "SKIPPED" or not argv:
+            print(f"        {note}")
+        else:
+            print(f"        {note}")
+        if argv and engine not in ("SKIPPED", "shiki"):
+            script = FAMILY.get(engine)
+            if script is None:
+                print(f"        ! engine not registered in FAMILY — would be skipped")
+            elif not script.exists():
+                print(f"        ! engine missing on disk — step will be skipped: {script}")
+    print("")
+    print("  plan-only: no packet left this machine. Drop --plan-only to execute.")
+    return 0
+
+
+def cmd_gate(args):
+    """Standalone step-0: the shield check everything else can call."""
+    barb = FAMILY.get("barbican")
+    if barb is None or not barb.exists():
+        print("✗ GATE CLOSED — shield not installed (barbican engine missing)", file=sys.stderr)
+        return 1
+    r = subprocess.run([sys.executable, str(barb), "vantage", "check",
+                        "--target", args.target])
+    if r.returncode == 0:
+        print("═══ GATE OPEN — shield verified ═══")
+        return 0
+    print("═══ GATE CLOSED — no verified exit, no engagement ═══", file=sys.stderr)
+    return r.returncode or 1
+
+
+def cmd_warroom(args):
+    """One shot: the war board + fire-list + family engine status."""
+    for line in _board_lines(args.org):
+        print(line)
+    print("")
+    args_fires = argparse.Namespace(org=args.org)
+    cmd_fires(args_fires)
+    print("")
+    print("═══ FAMILY ENGINES ═══")
+    for name, ok in _family_status_lines():
+        print(f"  {ok} {name}")
+    print("═══ end war room ═══")
+    return 0
+
+
+def _crown_class_guess(text):
+    t = text.lower()
+    for kw, cls in (("user", "PII"), ("row", "PII"), ("email", "PII"),
+                    ("card", "FIN"), ("payment", "FIN"), ("billing", "FIN"),
+                    ("key", "CRED"), ("secret", "CRED"), ("token", "CRED"),
+                    ("backup", "BACKUP"), ("dump", "BACKUP"), (".sql", "BACKUP"),
+                    ("repo", "SRC"), ("source", "SRC"), ("tenant", "SASS"),
+                    ("admin", "SASS"), ("export", "SASS")):
+        if kw in t:
+            return cls
+    return "PII"
+
+
+def cmd_handoff(args):
+    """The next mandate's exact command sequence, consuming this campaign's state."""
+    camp = Path.home() / ".redteam" / "campaigns" / args.target
+    to = args.to
+    print(f"═══ SHIKI HANDOFF → {to.upper()} ({args.target}) ═══")
+    if to == "shukaku":
+        already = set()
+        hs = camp / "harvest-state.json"
+        if hs.exists():
+            try:
+                already = {i.get("finding") for i in
+                           json.loads(hs.read_text()).get("ingested", [])}
+            except Exception:
+                pass
+        findings = []
+        uc = camp / "undercroft-state.json"
+        if uc.exists():
+            u = json.loads(uc.read_text())
+            for s in u.get("surface", []):
+                if s.get("status") == "CONFIRMED":
+                    findings.append((f"UC-SURFACE:{s['endpoint']}",
+                                     s.get("proof") or "CONFIRMED surface"))
+            for l in u.get("logic", []):
+                if l.get("status") == "CONFIRMED":
+                    findings.append((f"UC-LOGIC:{l.get('seam', 'seam')}",
+                                     l.get("proof") or "CONFIRMED logic seam"))
+            for p in u.get("pocs", []):
+                findings.append((f"UC-POC:{p.get('finding', 'poc')}",
+                                 p.get("proof") or "crafted PoC"))
+        k = camp / "hardware-state.json"
+        if k.exists():
+            try:
+                for v in json.loads(k.read_text()).get("vectors", []):
+                    findings.append((f"KAIRO-VEC:{v.get('id', '?')}",
+                                     v.get("proof") or "synthesized vector"))
+            except Exception:
+                pass
+        if not findings:
+            print("  (no confirmed findings in family states yet — run the descent)")
+            print(f"  template: shukaku ingest --target {args.target} --finding <id>"
+                  " --proof <read-only ref>")
+        for fid, proof in findings:
+            if fid in already:
+                continue
+            cls = _crown_class_guess(f"{fid} {proof}")
+            print(f"  shukaku ingest --target {args.target} --finding \"{fid}\""
+                  f" --proof \"{proof[:70]}\"")
+            print(f"  shukaku crown  --target {args.target} --asset <asset> --class"
+                  f" {cls} --scope <counts> --source \"{fid}\"")
+        print("  shukaku reason --target " + args.target)
+        print("  shukaku hunt   --target " + args.target + "   # then --live if web reach")
+        print("  shukaku feed   --target " + args.target + "   # the loop closes")
+        print("  shukaku report --target " + args.target)
+    elif to == "kairo":
+        print(f"  kairo ingest --target {args.target}")
+        print(f"  kairo gene   --check --target {args.target}   # NO Δ = NO VECTOR")
+        print(f"  kairo forge  --target {args.target} --expand")
+        print(f"  kairo chain  --target {args.target} --validate")
+        print(f"  kairo chain  --target {args.target} --write")
+        print(f"  kairo armory --target {args.target}")
+    elif to == "holyshit":
+        print(f"  holyshit recon --domain <d>")
+        print(f"  holyshit dossier --target {args.target}")
+        print(f"  holyshit recipe --search \"<confirmed seam>\"")
+        print(f"  holyshit handoff --target {args.target} --to <next>")
+    else:
+        print(f"✗ --to {to} unsupported (shukaku|holyshit|kairo)", file=sys.stderr)
+        return 2
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description="SHIKI — Command Mandate CLI")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -390,6 +612,14 @@ def main():
     asl.add_argument("--parallel", action="store_true", help="find ∥ descend concurrently")
     asl.add_argument("--resume", action="store_true", help="engagement continuity: skip fresh stages, dedupe the rest")
     asl.add_argument("--close", action="store_true", help="closeout: wipe campaign (report archived to ~/.redteam/closeouts)")
+    asl.add_argument("--plan-only", action="store_true", help="print the full 6-step plan (exact argv, engine presence); execute nothing")
+    wr = sub.add_parser("warroom", help="board + fires + family engine status, one view")
+    wr.add_argument("--org", required=True)
+    gt = sub.add_parser("gate", help="standalone step-0: barbican vantage check")
+    gt.add_argument("--target", required=True)
+    ho = sub.add_parser("handoff", help="the next mandate's exact command sequence")
+    ho.add_argument("--target", required=True)
+    ho.add_argument("--to", required=True, choices=("shukaku", "holyshit", "kairo"))
     a = ap.parse_args()
     if a.cmd == "plan":
         return cmd_plan(a)
@@ -403,7 +633,15 @@ def main():
         return cmd_verify(a)
     if a.cmd == "board":
         return cmd_board(a)
+    if a.cmd == "warroom":
+        return cmd_warroom(a)
+    if a.cmd == "gate":
+        return cmd_gate(a)
+    if a.cmd == "handoff":
+        return cmd_handoff(a)
     if a.cmd == "assault":
+        if getattr(a, "plan_only", False):
+            return cmd_assault_plan(a)
         return cmd_assault(a)
     return 2
 
