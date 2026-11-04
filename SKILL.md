@@ -1,110 +1,135 @@
 ---
 name: shiki
-description: "Trigger `shiki`. The Command Mandate — binds HolyShit, 3AM, and KAIRO into one coordinated attack: lanes, dispatch, joint convergence."
-version: 1.0.0
+description: "Trigger `shiki`. THE COMMAND — runs the whole family as one assault: barbican gate → holyshit recon/dossier → undercroft live descent → kairo forge → chains → joint verdict. One command."
+version: 2.0.0
 author: Hermes Agent
 license: MIT
 platforms: [linux]
 metadata:
   hermes:
-    tags: [redteam, offensive-security, orchestration, command, coordination, multi-agent]
-    related_skills: [holyshit-mode, 3am-shinjitsu, kairo]
+    tags: [redteam, offensive-security, orchestration, command, multi-agent, authorized-testing]
+    related_skills: [barbican, holyshit-mode, 3am-shinjitsu, undercroft, kairo]
 ---
 
-# SHIKI (指揮) — The Command Mandate
+# SHIKI — The Command Mandate
 
-Every branch of this family ATTACKS. SHIKI is the role that makes them attack
-**together**: it decomposes an estate into parallel attack lanes, dispatches each
-lane to the family member built for it, converges results mid-operation, re-tasks
-lanes the moment a finding lands, and runs the whole assault on one clock and one
-noise budget.
+The family's conductor. Every branch attacks; SHIKI makes them attack **together,
+in order, under the shield** — and it drives their REAL engines, not summaries:
 
-- **HolyShit** attacks as the *breacher*: proven recipes, discovery canon, case lore.
-- **3AM** attacks as the *assault engine*: sweep, synthesis, decisive tests, takeover.
-- **KAIRO** attacks as the *metal lane*: firmware, interfaces, radios on the estate's devices.
-- **SHIKI** attacks as the *commander*: the battle plan, the lanes, the convergence,
-  the tempo — and it executes its own decisive tests where the family gaps are.
+```
+barbican vantage check   (the gate: no verified exit → no assault)
+   ↓
+holyshit recon + dossier (the finder: domain checklist + everything known)
+   ↓
+undercroft run           (the descent: live auto-engagement, read-only)
+   ↓
+kairo forge --expand     (the synthesizer: every finding → attacks + variants)
+   ↓
+kairo chain --write      (the kill chains: BOUNDARY→REPLAY:TAKEOVER …)
+   ↓
+armory + joint verdict   (the war board: what's confirmed, what's armed, what's next)
+```
+
+One command — `shiki assault` — runs the entire family against a declared estate
+and hands back the joint operations report. Read-only by construction (the descent
+fires GETs only); everything state-changing stays behind explicit --confirm gates
+in the consumer mandates.
+
+## The Family Tree (roles)
+
+```
+   BARBICAN (first layer — the shield, the gate)
+      ↓ posture verified
+   HolyShit (finder) · 3AM (performer) · UNDERCROFT (descent) · KAIRO (synthesizer)
+      ↓ findings relay to kairo, compiled attacks relay back
+   SHIKI (command) — conducts the whole orchestra as one assault
+```
 
 ## When to Use
 
-Trigger `shiki` when a target ESTATE (a company, a fleet, a full stack) is on the
-board and the fight must be one operation: multiple fronts (web, API, servers,
-cloud, mail, devices), multiple family members working in parallel, one joint
-verdict. Also use as the command layer on top of a single 3AM campaign when the
-operator says "attack everything together."
+Trigger `shiki` when a declared estate must be engaged as ONE operation — the
+operator wants the family, not one member. Also the capstone after manual lanes:
+`board` shows the war, `assault` fights it.
 
 ## Activation
 
 Run the trigger sequence ONCE, then collect P0 via the agent's question feature:
 
 ```text
-▸ SHIKI — COMMAND MANDATE ARMED
+▸ SHIKI — COMMAND ONLINE
   ═══════════════════════════════════
-  [ OK ] battle board open
-  [ OK ] lanes decomposed
-  [ OK ] family assets online
-  ⚡ SHIKI ARMED · STATUS: COMMAND
+  [ OK ] family engines located
+  [ OK ] war board open
+  [ OK ] relay wired
+  ⚡ SHIKI ARMED · STATUS: CONDUCTING
   ▁▂▃▄▅▆▇█▇▆▅▄▃▂▁
   ─ waiting P0: estate · objective · authorization
 ```
 
 **P0 (clarify, zero documents):** estate · objective · authorization. Recorded
-declaration = the entire gate (family canon). Lanes only ever target declared assets.
+declaration = the entire gate. SHIKI refuses to conduct without a barbican posture
+on the target — the shield goes up first, always.
 
-## The Battle Plan
+## The Assault Sequence (what `assault` actually runs)
 
-1. **Decompose** — split the estate into parallel attack Lanes by surface class:
-   `web`, `api`, `servers/backends`, `cloud/tenant`, `mail/collab`, `devices`,
-   `identity`, `data`. Every lane that applies is attacked; the rest are N/A'd.
-2. **Dispatch** — assign each lane to the family member built for it:
-   - `web`,`api`,`identity`,`data` → **3AM** (sweep per lane stack, synthesis, takeover)
-   - `servers/backends` → **3AM** deep ladder + **HolyShit** known-CVE/era lore
-   - `devices` → **KAIRO** (firmware/interfaces/radio, when the estate has metal)
-   - cross-cutting discovery → **HolyShit** (recipes, recon canon, case lore)
-   - gaps (no family lane owner) → **SHIKI** executes its own decisive tests
-3. **Synchronize** — one clock (3AM time-weighting applied operation-wide), one
-   global noise budget, coordinated revert discipline; lanes never step on each
-   other (port/banner conflicts assigned once).
-4. **Converge & re-task** — lane results are merged mid-operation: a confirmed
-   foothold in ANY lane re-prioritizes the board (primary lane escalates; adjacent
-   lanes repoint at the new access). Joint convergence: critical candidates get the
-   family's N-model vote (3AM `converge`) across models.
-5. **One verdict** — the joint operations report: per-lane coverage, confirmed
-   findings, certified chains (`A→B→C:TAKEOVER`), what the attacker gained, and the
-   named residual gaps. Negatives are results; nothing is padded.
+0. **GATE** — `barbican vantage check --target T`: posture exists + vantage live,
+   or the assault aborts (rc=1) before a single packet.
+1. **FIND** — `holyshit recon --domain D` + `dossier --target T`: the discovery
+   checklist + everything the canon knows.
+2. **DESCEND** — `undercroft run --target T --domain D --url U [--bundle B]
+   [--boundary-url … --probe-ids …]`: the live read-only engagement.
+3. **FORGE** — `kairo forge --target T --expand`: every finding → attack vectors
+   + sibling variants, distributed to all consumers.
+4. **CHAIN** — `kairo chain --target T --write`: the multi-hop kill chains
+   (`BOUNDARY→REPLAY:TAKEOVER`).
+5. **VERDICT** — `kairo armory` + the joint operations report: per-lane results,
+   confirmed findings, armed chains, named gaps, next steps (3AM promote).
 
-## The coordination rules (family canon)
+SHIKI executes its own decisive tests only where no family engine exists — and
+says so in the report.
 
-- ALL branches attack — there are no observer roles in this family.
-- Lanes run in parallel within the global noise budget; bursts chunked; findings
-  decay → drift before re-assert (3AM `drift`).
-- A confirmed lane NEVER waits: re-task within one turn (escalate/pivot).
-- The same decisive test is never fired twice by two lanes (assignment registry).
-- Walls hold unchanged: documented-PoC adaptation only; validation-only compromise;
-  no persistence/destruction/social; zero documents at the gate.
+## Manual command layer (when the operator drives lane-by-lane)
+
+- `plan --org <o> --estate "<target>" --lanes "web,api,servers,cloud,identity,devices,mail"`
+- `lane --org <o> --lane <name> --assign <3am|holyShit|kairo|shiki> --status … [--note] [--score N]`
+- `fires --org <o>` — the joint fire-list, score-ordered
+- `board --org <o>` — the war board: all family states summarized in one view
+- `report --org <o> [--output F]` — the joint operations verdict
+
+## Coordination rules (family canon)
+
+- The shield goes up first: no barbican posture, no assault.
+- All branches attack — no observer roles; the same decisive test never fired twice
+  (assignment registry); confirmed lanes re-task within one turn.
+- Findings decay → drift before re-assert; bursts chunked within the global noise
+  budget; the assault is read-only by construction.
+- Walls unchanged: documented-PoC adaptation, validation-only compromise, no
+  persistence/destruction/social, zero documents.
 
 ## Tooling
 
 `scripts/shiki.py` — stdlib CLI:
-- `plan --org <o> --estate "<target>" --lanes "web,api,servers,cloud,identity,devices,mail"` — create the battle plan
-- `lane --org <o> --lane <name> --assign <3am|holyShit|kairo|shiki> --status QUEUED|ACTIVE|CONFIRMED|EXHAUSTED|N/A [--note "..."] [--score N]` — lane state
-- `fires --org <o>` — the joint fire-list (active lanes + their best candidates, score-ordered)
-- `report --org <o> [--output F]` — joint operations verdict
-- `verify` — self-check
+- `assault --target T --url U --domain D [--bundle P] [--cookie k=v] [--boundary-url U2] [--probe-ids 1,2] [--skip gate|find|descend|forge|chain]` — the orchestrated assault
+- `board --org <o>` — the war board (all family states, one view)
+- `plan/lane/fires/report` — the manual battle plan (v1 layer)
+- `verify` — self-check (incl. family engines located)
 
-State: `~/.redteam/campaigns/<org>/ops-state.json`.
+State: `~/.redteam/campaigns/<target>/ops-state.json`.
 
 ## Files
 
 - `SKILL.md` — this doctrine
-- `references/operations-playbook.md` — lane doctrine, dispatch matrix, joint convergence, tempo/budget rules
-- `scripts/shiki.py` — plan/lane/fires/report/verify CLI
+- `references/operations-playbook.md` — lane doctrine, dispatch matrix, convergence, tempo
+- `scripts/shiki.py` — assault/board/plan/lane/fires/report/verify CLI
 - `templates/ops-state.json` — battle-plan state starter
 
 ## Relations
 
-- `holyshit-mode` — breacher lane: recipes, discovery canon (normative by reference).
-- `3am-shinjitsu` — assault engine lane: sweep, synthesis, takeover, convergence.
-- `kairo` — metal lane: devices, firmware, radios.
-- Tree: HolyShit (breacher) · 3AM (assault engine) · SHIKI (command) · KAIRO (metal
-  lane). Every branch attacks; SHIKI makes them attack together.
+- `barbican` — THE FIRST LAYER: its gate is SHIKI's step 0; no posture, no assault.
+- `holyshit-mode` — the finder: recon + dossier are SHIKI's step 1.
+- `undercroft` — the descent: its live `run` is SHIKI's step 2.
+- `kairo` — the synthesizer: forge + chains are SHIKI's steps 3–4.
+- `3am-shinjitsu` — the performer: the matrix the assault feeds (promote step).
+- Tree: BARBICAN (shield) → HolyShit (finder) → UNDERCROFT (descent) → KAIRO
+  (synthesizer) → 3AM (performer), conducted by SHIKI (command). One family,
+  one gate, one command.

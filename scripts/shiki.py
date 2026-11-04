@@ -145,9 +145,14 @@ def cmd_verify(args):
         bad.append("compile")
     help_out = subprocess.run([sys.executable, str(self), "--help"],
                               capture_output=True, text=True).stdout
-    for want in ("plan", "lane", "fires", "report", "verify"):
+    for want in ("plan", "lane", "fires", "report", "verify",
+                 "board", "assault"):
         if want not in help_out:
             bad.append(f"subcommand {want}")
+    # family engines must exist (SHIKI drives them)
+    for name, script in FAMILY.items():
+        if not script.exists():
+            bad.append(f"family engine {name} missing")
     tmpl = Path(__file__).resolve().parent.parent / "templates" / "ops-state.json"
     if tmpl.exists():
         try:
@@ -158,6 +163,123 @@ def cmd_verify(args):
         print(f"✗ SHIKI verify FAILED: {bad}")
         return 1
     print("✓ SHIKI verify: compile · subcommands · template — ALL PASS")
+    return 0
+
+
+# ── v2.0.0 THE COMMAND: drive the family's real engines ───────────────────────
+
+FAMILY = {
+    "barbican": Path.home() / ".hermes/skills/security/barbican/scripts/barbican.py",
+    "holyshit": Path.home() / ".hermes/skills/security/holyshit-mode/scripts/finder.py",
+    "undercroft": Path.home() / ".hermes/skills/security/undercroft/scripts/undercroft.py",
+    "kairo": Path.home() / ".hermes/skills/security/kairo/scripts/kairo.py",
+}
+
+
+def _run_engine(name, argv):
+    """Run a family CLI; stream output; return exit code."""
+    script = FAMILY[name]
+    if not script.exists():
+        print(f"  ! {name} engine missing ({script}) — lane skipped")
+        return 2
+    cmd = [sys.executable, str(script)] + argv
+    print(f"  ──▶ {name}: {' '.join(argv)[:110]}")
+    r = subprocess.run(cmd)
+    return r.returncode
+
+
+def cmd_board(args):
+    """The war board: all family states for the target, one view."""
+    camp = Path.home() / ".redteam" / "campaigns" / args.org
+    print(f"═══ SHIKI WAR BOARD — {args.org} ═══")
+    total_conf = 0
+    spec = [("undercroft", camp / "undercroft-state.json", ("code", "surface", "logic")),
+            ("3am", camp / "state.json", ()),
+            ("kairo", camp / "hardware-state.json", ())]
+    for name, f, grps in spec:
+        if not f.exists():
+            print(f"  [{name:10s}] — no state (lane not yet engaged)")
+            continue
+        st = json.loads(f.read_text())
+        if name == "undercroft":
+            for g in grps:
+                items = st.get(g, [])
+                conf = sum(1 for x in items if x.get("status") == "CONFIRMED")
+                total_conf += conf
+                print(f"  [{name:10s}] {g}: {len(items)} entries, {conf} CONFIRMED")
+            print(f"  [{name:10s}] pocs: {len(st.get('pocs', []))} · chains-ready")
+        elif name == "kairo":
+            vs = st.get("vectors", [])
+            ch = st.get("chains", [])
+            dist = sum(1 for v in vs if v.get("distributed"))
+            total_conf += len(ch)
+            print(f"  [{name:10s}] vectors: {len(vs)} (distributed {dist}) · chains: {len(ch)}")
+            for c in ch:
+                print(f"      {c['chain']} [{c['status']}]")
+        elif name == "3am":
+            ei = st.get("exploit_intel", {})
+            print(f"  [{name:10s}] teardowns: {len(ei.get('teardowns', []))} · chains: {len(ei.get('chains', []))}")
+    lv = Path.home() / ".redteam" / "learned-vectors.jsonl"
+    if lv.exists():
+        rows = [json.loads(l) for l in lv.read_text().splitlines() if l.strip()]
+        print(f"  [family     ] learned-vectors canon: {len(rows)} rows (3AM promote-ready)")
+    ops = load(args.org) or {}
+    lanes = ops.get("lanes", {})
+    if lanes:
+        conf = sum(1 for l in lanes.values() if l.get("status") == "CONFIRMED")
+        print(f"  [shiki      ] lanes: {len(lanes)} planned, {conf} CONFIRMED")
+    print(f"═══ {total_conf} confirmed finding(s) on the board ═══")
+    return 0
+
+
+def cmd_assault(args):
+    """ONE COMMAND: the family, in order, under the shield."""
+    print(f"═══ SHIKI ASSAULT — {args.target} ═══")
+    steps = {"gate", "find", "descend", "forge", "chain"}
+    if args.skip:
+        steps -= set(args.skip.split(","))
+    # [0] GATE
+    if "gate" in steps:
+        print("[0] BARBICAN GATE")
+        rc = _run_engine("barbican", ["vantage", "check", "--target", args.target])
+        if rc == 1:
+            print("═══ ASSAULT ABORTED — the shield is down. Fix the vantage or re-posture. ═══")
+            return 1
+        print("    gate open — shield verified")
+    # [1] FIND
+    if "find" in steps:
+        print("[1] HOLYSHIT FINDS")
+        _run_engine("holyshit", ["recon", "--domain", args.domain])
+        _run_engine("holyshit", ["dossier", "--target", args.target])
+    # [2] DESCEND
+    if "descend" in steps and args.url:
+        print("[2] UNDERCROFT DESCENDS (live, read-only)")
+        argv = ["run", "--target", args.target, "--domain", args.domain, "--url", args.url]
+        if args.bundle:
+            argv += ["--bundle", args.bundle]
+        if args.cookie:
+            argv += ["--cookie", args.cookie]
+        if args.boundary_url:
+            argv += ["--boundary-url", args.boundary_url]
+        if args.probe_ids:
+            argv += ["--probe-ids", args.probe_ids]
+        _run_engine("undercroft", argv)
+    # [3] FORGE
+    if "forge" in steps:
+        print("[3] KAIRO FORGES")
+        _run_engine("kairo", ["forge", "--target", args.target, "--expand"])
+    # [4] CHAIN
+    if "chain" in steps:
+        print("[4] KAIRO CHAINS")
+        _run_engine("kairo", ["chain", "--target", args.target, "--write"])
+    # [5] VERDICT
+    print("[5] THE WAR BOARD + JOINT VERDICT")
+    args.org = args.target
+    cmd_board(args)
+    rep = f"{args.target}-joint-assault.md"
+    args.output = rep
+    cmd_report(args)
+    print(f"═══ joint report: {rep} · next: 3AM promote --apply --verified ═══")
     return 0
 
 
@@ -182,6 +304,17 @@ def main():
     r.add_argument("--output")
     v = sub.add_parser("verify", help="self-check")
     v.add_argument("--org")
+    bd = sub.add_parser("board", help="the war board: all family states, one view")
+    bd.add_argument("--org", required=True)
+    asl = sub.add_parser("assault", help="ONE COMMAND: barbican gate → find → descend → forge → chain → verdict")
+    asl.add_argument("--target", required=True)
+    asl.add_argument("--url", help="live estate base URL")
+    asl.add_argument("--domain", required=True)
+    asl.add_argument("--bundle", help="client bundle/source path")
+    asl.add_argument("--cookie", help="own session cookie for read probes")
+    asl.add_argument("--boundary-url", help="boundary probe template with {id}")
+    asl.add_argument("--probe-ids", help="comma own-ids")
+    asl.add_argument("--skip", help="comma steps to skip: gate,find,descend,forge,chain")
     a = ap.parse_args()
     if a.cmd == "plan":
         return cmd_plan(a)
@@ -193,6 +326,10 @@ def main():
         return cmd_report(a)
     if a.cmd == "verify":
         return cmd_verify(a)
+    if a.cmd == "board":
+        return cmd_board(a)
+    if a.cmd == "assault":
+        return cmd_assault(a)
     return 2
 
 
