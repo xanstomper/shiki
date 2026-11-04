@@ -576,6 +576,11 @@ def cmd_handoff(args):
     camp = Path.home() / ".redteam" / "campaigns" / args.target
     to = args.to
     print(f"═══ SHIKI HANDOFF → {to.upper()} ({args.target}) ═══")
+    if to == "dojo":
+        print("  dojo catalog — every technique class the family can train on")
+        print("  dojo build --class <C> --port 8801 — the replica for this assault")
+        print("  dojo teach --class <C> — flaw → probe → kage rule")
+        return 0
     if to == "shukaku":
         already = set()
         hs = camp / "harvest-state.json"
@@ -693,7 +698,7 @@ def main():
     vl.add_argument("--days", type=int, default=7)
     ho = sub.add_parser("handoff", help="the next mandate's exact command sequence")
     ho.add_argument("--target", required=True)
-    ho.add_argument("--to", required=True, choices=("shukaku", "holyshit", "kairo", "kaisha"))
+    ho.add_argument("--to", required=True, choices=("shukaku", "holyshit", "kairo", "kaisha", "dojo"))
     a = ap.parse_args()
     if a.cmd == "plan":
         return cmd_plan(a)
