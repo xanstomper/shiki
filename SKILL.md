@@ -40,7 +40,8 @@ in the consumer mandates.
 ```
    BARBICAN (first layer — the shield, the gate)
       ↓ posture verified
-   HolyShit (finder) · 3AM (performer) · UNDERCROFT (descent) · KAIRO (synthesizer)
+   HolyShit (finder) · 3AM (performer) · UNDERCROFT (descent) · KAIRO (synthesizer) ·
+   SHUKAKU (harvester)
       ↓ findings relay to kairo, compiled attacks relay back
    SHIKI (command) — conducts the whole orchestra as one assault
 ```
@@ -125,7 +126,7 @@ State: `~/.redteam/campaigns/<target>/ops-state.json`.
 
 ## Relations
 
-- `spydermonkey` — THE DISPATCHER (v1.0.0): the family's front door — any agent loads it first, states the goal, and the router sends the right mandate(s); `spydermonkey run` = the full pipeline, `spydermonkey verify` checks all six engines. The web's center.
+- `spydermonkey` — THE DISPATCHER (v1.2.0): the family's front door — any agent loads it first, states the goal, and the router sends the right mandate(s); `spydermonkey run` = the full pipeline, `spydermonkey verify` checks all seven engines. The web's center.
 
 
 - `barbican` — THE FIRST LAYER: its gate is SHIKI's step 0; no posture, no assault.
@@ -133,6 +134,8 @@ State: `~/.redteam/campaigns/<target>/ops-state.json`.
 - `undercroft` — the descent: its live `run` is SHIKI's step 2.
 - `kairo` — the synthesizer: forge + chains are SHIKI's steps 3–4.
 - `3am-shinjitsu` — the performer: the matrix the assault feeds (promote step).
+- `shukaku` — the harvester: the P5 impact layer — crown register (catalog · price ·
+  disclose) over the assault's confirmed compromises.
 - Tree: BARBICAN (shield) → HolyShit (finder) → UNDERCROFT (descent) → KAIRO
-  (synthesizer) → 3AM (performer), conducted by SHIKI (command). One family,
-  one gate, one command.
+  (synthesizer) → 3AM (performer) → SHUKAKU (harvester), conducted by SHIKI
+  (command). One family, one gate, one command.

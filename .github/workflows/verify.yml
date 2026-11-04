@@ -1,0 +1,31 @@
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile
+        run: python3 -m py_compile scripts/shiki.py
+
+      - name: CLI smoke tests
+        run: |
+          set -e
+          S=scripts/shiki.py
+          python3 $S --help > /dev/null
+          python3 $S verify | grep -q 'ALL PASS'
+          for c in assault board plan lane fires report verify; do
+            python3 $S --help | grep -q "$c"
+          done
+          test -f templates/ops-state.json
+          test -f references/operations-playbook.md
+
+      - name: Stdlib-only check
+        run: |
+          ! grep -E '^[[:space:]]*(import|from)[[:space:]]+(requests|flask|httpx|aiohttp|urllib3)' scripts/shiki.py
