@@ -85,14 +85,11 @@ def cmd_lane(args):
     if args.status not in LANE_STATUS:
         print(f"✗ status {LANE_STATUS}", file=sys.stderr)
         return 2
+    upd = {"status": args.status, "note": args.note or "", "score": args.score or 0,
+           "at": datetime.now(timezone.utc).isoformat()}
     if args.assign:
-        lanes[args.lane]["assign"] = args.assign  # preserve owner on re-task
-    if lanes[args.lane]["status"] == "EXHAUSTED" and args.status != "EXHAUSTED":
-        print("· lane EXHAUSTED — re-open only after a target change (canon)")
-        return 0
-    lanes[args.lane].update({"assign": args.assign, "status": args.status,
-                             "note": args.note or "", "score": args.score or 0,
-                             "at": datetime.now(timezone.utc).isoformat()})
+        upd["assign"] = args.assign  # preserve owner on re-task
+    lanes[args.lane].update(upd)
     save(args.org, st)
     print(f"▸ lane {args.lane} [{args.assign}] {args.status}" + (f" — {args.note[:80]}" if args.note else ""))
     return 0
@@ -105,7 +102,7 @@ def cmd_fires(args):
     active.sort(key=lambda l: -(l.get("score", 0) or 0))
     print(f"▸ JOINT FIRE-LIST — {len(active)} active lanes")
     for i, l in enumerate(active, 1):
-        print(f"  {i:2d}. [{l['assign']:9s}] ({l.get('score', 0):3d}) {l['status']:9s} "
+        print(f"  {i:2d}. [{str(l.get('assign') or '?'):9s}] ({l.get('score', 0):3d}) {l['status']:9s} "
               f"{l.get('note', '')[:70]}")
     if not active:
         print("  (no active lanes — plan + dispatch first)")
