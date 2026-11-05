@@ -58,7 +58,7 @@ Run the trigger sequence ONCE, then collect P0 via the agent's question feature:
 
 ```text
 ▸ SHIKI — COMMAND ONLINE
-  ═══════════════════════════════════
+
   [ OK ] family engines located
   [ OK ] war board open
   [ OK ] relay wired
